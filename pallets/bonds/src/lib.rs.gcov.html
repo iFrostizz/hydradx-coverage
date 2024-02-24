@@ -1,0 +1,415 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - pallets/bonds/src/lib.rs</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">pallets/bonds/src</a> - lib.rs<span style="font-size: 80%;"> (source / <a href="lib.rs.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">58</td>
+            <td class="headerCovTableEntry">66</td>
+            <td class="headerCovTableEntryMed">87.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2024-02-25 00:16:50</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : // Copyright (C) 2020-2022  Intergalactic, Limited (GIB).</a>
+<a name="2"><span class="lineNum">       2 </span>            : // SPDX-License-Identifier: Apache-2.0</a>
+<a name="3"><span class="lineNum">       3 </span>            : </a>
+<a name="4"><span class="lineNum">       4 </span>            : // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</a>
+<a name="5"><span class="lineNum">       5 </span>            : // you may not use this file except in compliance with the License.</a>
+<a name="6"><span class="lineNum">       6 </span>            : // You may obtain a copy of the License at</a>
+<a name="7"><span class="lineNum">       7 </span>            : //</a>
+<a name="8"><span class="lineNum">       8 </span>            : //      http://www.apache.org/licenses/LICENSE-2.0</a>
+<a name="9"><span class="lineNum">       9 </span>            : //</a>
+<a name="10"><span class="lineNum">      10 </span>            : // Unless required by applicable law or agreed to in writing, software</a>
+<a name="11"><span class="lineNum">      11 </span>            : // distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</a>
+<a name="12"><span class="lineNum">      12 </span>            : // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</a>
+<a name="13"><span class="lineNum">      13 </span>            : // See the License for the specific language governing permissions and</a>
+<a name="14"><span class="lineNum">      14 </span>            : // limitations under the License.</a>
+<a name="15"><span class="lineNum">      15 </span>            : </a>
+<a name="16"><span class="lineNum">      16 </span>            : //! # Bonds pallet</a>
+<a name="17"><span class="lineNum">      17 </span>            : //!</a>
+<a name="18"><span class="lineNum">      18 </span>            : //! ## Overview</a>
+<a name="19"><span class="lineNum">      19 </span>            : //!</a>
+<a name="20"><span class="lineNum">      20 </span>            : //! This pallet provides functionality to issue fungible bonds.</a>
+<a name="21"><span class="lineNum">      21 </span>            : //! Once the bonds are mature, they can be redeemed for the underlying asset.</a>
+<a name="22"><span class="lineNum">      22 </span>            : //! The pallet uses `Time` trait to get the timestamp of the last block, normally provided by the timestamp pallet.</a>
+<a name="23"><span class="lineNum">      23 </span>            : //!</a>
+<a name="24"><span class="lineNum">      24 </span>            : //! ## Issuing of new bonds</a>
+<a name="25"><span class="lineNum">      25 </span>            : //!</a>
+<a name="26"><span class="lineNum">      26 </span>            : //! * When issuing new bonds, new nameless asset of the `AssetType::Bond` type is registered for the bonds.</a>
+<a name="27"><span class="lineNum">      27 </span>            : //! * New amount of bonds is issued when the underlying asset and maturity matches already registered bonds.</a>
+<a name="28"><span class="lineNum">      28 </span>            : //! * It's possible to create multiple bonds for the same underlying asset.</a>
+<a name="29"><span class="lineNum">      29 </span>            : //! * Bonds can be issued for all available asset types permitted by `AssetTypeWhitelist`.</a>
+<a name="30"><span class="lineNum">      30 </span>            : //! * The existential deposit of the bonds is the same as of the underlying asset.</a>
+<a name="31"><span class="lineNum">      31 </span>            : //! * A user receives the same amount of bonds as the amount of the underlying asset he provided, minus the protocol fee.</a>
+<a name="32"><span class="lineNum">      32 </span>            : //! * Maturity of bonds is represented using the Unix time in milliseconds.</a>
+<a name="33"><span class="lineNum">      33 </span>            : //! * Underlying assets are stored in the pallet account until redeemed.</a>
+<a name="34"><span class="lineNum">      34 </span>            : //! * Protocol fee is applied to the amount of the underlying asset and transferred to the fee receiver.</a>
+<a name="35"><span class="lineNum">      35 </span>            : //! * It's possible to issue new bonds for bonds that are already mature.</a>
+<a name="36"><span class="lineNum">      36 </span>            : //!</a>
+<a name="37"><span class="lineNum">      37 </span>            : //! ## Redeeming of new bonds</a>
+<a name="38"><span class="lineNum">      38 </span>            : //! * Bonds can be both partially or fully redeemed.</a>
+<a name="39"><span class="lineNum">      39 </span>            : //! * The amount of the underlying asset an account receives is 1:1 to the `amount` of the bonds redeemed.</a>
+<a name="40"><span class="lineNum">      40 </span>            : //! * Anyone who holds the bonds is able to redeem them.</a>
+<a name="41"><span class="lineNum">      41 </span>            : </a>
+<a name="42"><span class="lineNum">      42 </span>            : #![cfg_attr(not(feature = &quot;std&quot;), no_std)]</a>
+<a name="43"><span class="lineNum">      43 </span>            : </a>
+<a name="44"><span class="lineNum">      44 </span>            : use frame_support::{</a>
+<a name="45"><span class="lineNum">      45 </span>            :         ensure,</a>
+<a name="46"><span class="lineNum">      46 </span>            :         pallet_prelude::{DispatchResult, Get},</a>
+<a name="47"><span class="lineNum">      47 </span>            :         sp_runtime::{</a>
+<a name="48"><span class="lineNum">      48 </span>            :                 traits::{AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub},</a>
+<a name="49"><span class="lineNum">      49 </span>            :                 DispatchError, Permill, Saturating,</a>
+<a name="50"><span class="lineNum">      50 </span>            :         },</a>
+<a name="51"><span class="lineNum">      51 </span>            :         traits::{Contains, Time},</a>
+<a name="52"><span class="lineNum">      52 </span>            :         PalletId,</a>
+<a name="53"><span class="lineNum">      53 </span>            : };</a>
+<a name="54"><span class="lineNum">      54 </span>            : use frame_system::{ensure_signed, pallet_prelude::OriginFor};</a>
+<a name="55"><span class="lineNum">      55 </span>            : use sp_core::MaxEncodedLen;</a>
+<a name="56"><span class="lineNum">      56 </span>            : use sp_std::{mem, vec::Vec};</a>
+<a name="57"><span class="lineNum">      57 </span>            : </a>
+<a name="58"><span class="lineNum">      58 </span>            : use hydradx_traits::{</a>
+<a name="59"><span class="lineNum">      59 </span>            :         registry::{Create, Inspect},</a>
+<a name="60"><span class="lineNum">      60 </span>            :         AssetKind,</a>
+<a name="61"><span class="lineNum">      61 </span>            : };</a>
+<a name="62"><span class="lineNum">      62 </span>            : use orml_traits::{GetByKey, MultiCurrency};</a>
+<a name="63"><span class="lineNum">      63 </span>            : use primitives::{AssetId, Moment};</a>
+<a name="64"><span class="lineNum">      64 </span>            : </a>
+<a name="65"><span class="lineNum">      65 </span>            : #[cfg(test)]</a>
+<a name="66"><span class="lineNum">      66 </span>            : mod tests;</a>
+<a name="67"><span class="lineNum">      67 </span>            : </a>
+<a name="68"><span class="lineNum">      68 </span>            : #[cfg(any(feature = &quot;runtime-benchmarks&quot;, test))]</a>
+<a name="69"><span class="lineNum">      69 </span>            : mod benchmarks;</a>
+<a name="70"><span class="lineNum">      70 </span>            : </a>
+<a name="71"><span class="lineNum">      71 </span>            : pub mod weights;</a>
+<a name="72"><span class="lineNum">      72 </span>            : </a>
+<a name="73"><span class="lineNum">      73 </span>            : pub use pallet::*;</a>
+<a name="74"><span class="lineNum">      74 </span>            : pub use weights::WeightInfo;</a>
+<a name="75"><span class="lineNum">      75 </span>            : </a>
+<a name="76"><span class="lineNum">      76 </span><span class="lineCov">        620 : #[frame_support::pallet]</span></a>
+<a name="77"><span class="lineNum">      77 </span>            : pub mod pallet {</a>
+<a name="78"><span class="lineNum">      78 </span>            :         use super::*;</a>
+<a name="79"><span class="lineNum">      79 </span>            :         use frame_support::pallet_prelude::*;</a>
+<a name="80"><span class="lineNum">      80 </span>            : </a>
+<a name="81"><span class="lineNum">      81 </span>            :         #[pallet::pallet]</a>
+<a name="82"><span class="lineNum">      82 </span>            :         pub struct Pallet&lt;T&gt;(_);</a>
+<a name="83"><span class="lineNum">      83 </span>            : </a>
+<a name="84"><span class="lineNum">      84 </span>            :         #[pallet::config]</a>
+<a name="85"><span class="lineNum">      85 </span>            :         pub trait Config: frame_system::Config {</a>
+<a name="86"><span class="lineNum">      86 </span>            :                 /// The overarching event type.</a>
+<a name="87"><span class="lineNum">      87 </span>            :                 type RuntimeEvent: From&lt;Event&lt;Self&gt;&gt; + IsType&lt;&lt;Self as frame_system::Config&gt;::RuntimeEvent&gt;;</a>
+<a name="88"><span class="lineNum">      88 </span>            : </a>
+<a name="89"><span class="lineNum">      89 </span>            :                 /// Balance type.</a>
+<a name="90"><span class="lineNum">      90 </span>            :                 type Balance: Parameter</a>
+<a name="91"><span class="lineNum">      91 </span>            :                         + Member</a>
+<a name="92"><span class="lineNum">      92 </span>            :                         + Copy</a>
+<a name="93"><span class="lineNum">      93 </span>            :                         + PartialOrd</a>
+<a name="94"><span class="lineNum">      94 </span>            :                         + MaybeSerializeDeserialize</a>
+<a name="95"><span class="lineNum">      95 </span>            :                         + Default</a>
+<a name="96"><span class="lineNum">      96 </span>            :                         + CheckedAdd</a>
+<a name="97"><span class="lineNum">      97 </span>            :                         + CheckedSub</a>
+<a name="98"><span class="lineNum">      98 </span>            :                         + AtLeast32BitUnsigned</a>
+<a name="99"><span class="lineNum">      99 </span>            :                         + MaxEncodedLen</a>
+<a name="100"><span class="lineNum">     100 </span>            :                         + From&lt;u128&gt;;</a>
+<a name="101"><span class="lineNum">     101 </span>            : </a>
+<a name="102"><span class="lineNum">     102 </span>            :                 /// Multi currency mechanism.</a>
+<a name="103"><span class="lineNum">     103 </span>            :                 type Currency: MultiCurrency&lt;Self::AccountId, CurrencyId = AssetId, Balance = Self::Balance&gt;;</a>
+<a name="104"><span class="lineNum">     104 </span>            : </a>
+<a name="105"><span class="lineNum">     105 </span>            :                 /// Asset Registry mechanism - used to register bonds in the asset registry.</a>
+<a name="106"><span class="lineNum">     106 </span>            :                 type AssetRegistry: Inspect&lt;AssetId = AssetId&gt; + Create&lt;Self::Balance, Error = DispatchError&gt;;</a>
+<a name="107"><span class="lineNum">     107 </span>            : </a>
+<a name="108"><span class="lineNum">     108 </span>            :                 /// Provider for existential deposits of assets.</a>
+<a name="109"><span class="lineNum">     109 </span>            :                 type ExistentialDeposits: GetByKey&lt;AssetId, Self::Balance&gt;;</a>
+<a name="110"><span class="lineNum">     110 </span>            : </a>
+<a name="111"><span class="lineNum">     111 </span>            :                 /// Provider for the current timestamp.</a>
+<a name="112"><span class="lineNum">     112 </span>            :                 type TimestampProvider: Time&lt;Moment = Moment&gt;;</a>
+<a name="113"><span class="lineNum">     113 </span>            : </a>
+<a name="114"><span class="lineNum">     114 </span>            :                 /// The pallet id, used for deriving its sovereign account ID.</a>
+<a name="115"><span class="lineNum">     115 </span>            :                 #[pallet::constant]</a>
+<a name="116"><span class="lineNum">     116 </span>            :                 type PalletId: Get&lt;PalletId&gt;;</a>
+<a name="117"><span class="lineNum">     117 </span>            : </a>
+<a name="118"><span class="lineNum">     118 </span>            :                 /// The origin which can issue new bonds.</a>
+<a name="119"><span class="lineNum">     119 </span>            :                 type IssueOrigin: EnsureOrigin&lt;Self::RuntimeOrigin, Success = Self::AccountId&gt;;</a>
+<a name="120"><span class="lineNum">     120 </span>            : </a>
+<a name="121"><span class="lineNum">     121 </span>            :                 /// Asset types that are permitted to be used as underlying assets.</a>
+<a name="122"><span class="lineNum">     122 </span>            :                 type AssetTypeWhitelist: Contains&lt;AssetKind&gt;;</a>
+<a name="123"><span class="lineNum">     123 </span>            : </a>
+<a name="124"><span class="lineNum">     124 </span>            :                 /// Protocol fee.</a>
+<a name="125"><span class="lineNum">     125 </span>            :                 #[pallet::constant]</a>
+<a name="126"><span class="lineNum">     126 </span>            :                 type ProtocolFee: Get&lt;Permill&gt;;</a>
+<a name="127"><span class="lineNum">     127 </span>            : </a>
+<a name="128"><span class="lineNum">     128 </span>            :                 /// Protocol fee receiver.</a>
+<a name="129"><span class="lineNum">     129 </span>            :                 #[pallet::constant]</a>
+<a name="130"><span class="lineNum">     130 </span>            :                 type FeeReceiver: Get&lt;Self::AccountId&gt;;</a>
+<a name="131"><span class="lineNum">     131 </span>            : </a>
+<a name="132"><span class="lineNum">     132 </span>            :                 /// Weight information for extrinsics in this pallet.</a>
+<a name="133"><span class="lineNum">     133 </span>            :                 type WeightInfo: WeightInfo;</a>
+<a name="134"><span class="lineNum">     134 </span>            :         }</a>
+<a name="135"><span class="lineNum">     135 </span>            : </a>
+<a name="136"><span class="lineNum">     136 </span><span class="lineCov">         32 :         #[pallet::storage]</span></a>
+<a name="137"><span class="lineNum">     137 </span>            :         /// Registered bond ids.</a>
+<a name="138"><span class="lineNum">     138 </span>            :         /// Maps (underlying asset ID, maturity) -&gt; bond ID</a>
+<a name="139"><span class="lineNum">     139 </span>            :         #[pallet::getter(fn bond_id)]</a>
+<a name="140"><span class="lineNum">     140 </span>            :         pub(super) type BondIds&lt;T: Config&gt; = StorageMap&lt;_, Blake2_128Concat, (AssetId, Moment), AssetId&gt;;</a>
+<a name="141"><span class="lineNum">     141 </span>            : </a>
+<a name="142"><span class="lineNum">     142 </span><span class="lineCov">          8 :         #[pallet::storage]</span></a>
+<a name="143"><span class="lineNum">     143 </span>            :         /// Registered bonds.</a>
+<a name="144"><span class="lineNum">     144 </span>            :         /// Maps bond ID -&gt; (underlying asset ID, maturity)</a>
+<a name="145"><span class="lineNum">     145 </span>            :         #[pallet::getter(fn bond)]</a>
+<a name="146"><span class="lineNum">     146 </span>            :         pub(super) type Bonds&lt;T: Config&gt; = StorageMap&lt;_, Blake2_128Concat, AssetId, (AssetId, Moment)&gt;;</a>
+<a name="147"><span class="lineNum">     147 </span>            : </a>
+<a name="148"><span class="lineNum">     148 </span>            :         #[pallet::event]</a>
+<a name="149"><span class="lineNum">     149 </span>            :         #[pallet::generate_deposit(pub(crate) fn deposit_event)]</a>
+<a name="150"><span class="lineNum">     150 </span>            :         pub enum Event&lt;T: Config&gt; {</a>
+<a name="151"><span class="lineNum">     151 </span>            :                 /// A bond asset was registered</a>
+<a name="152"><span class="lineNum">     152 </span>            :                 TokenCreated {</a>
+<a name="153"><span class="lineNum">     153 </span>            :                         issuer: T::AccountId,</a>
+<a name="154"><span class="lineNum">     154 </span>            :                         asset_id: AssetId,</a>
+<a name="155"><span class="lineNum">     155 </span>            :                         bond_id: AssetId,</a>
+<a name="156"><span class="lineNum">     156 </span>            :                         maturity: Moment,</a>
+<a name="157"><span class="lineNum">     157 </span>            :                 },</a>
+<a name="158"><span class="lineNum">     158 </span>            :                 /// New bond were issued</a>
+<a name="159"><span class="lineNum">     159 </span>            :                 Issued {</a>
+<a name="160"><span class="lineNum">     160 </span>            :                         issuer: T::AccountId,</a>
+<a name="161"><span class="lineNum">     161 </span>            :                         bond_id: AssetId,</a>
+<a name="162"><span class="lineNum">     162 </span>            :                         amount: T::Balance,</a>
+<a name="163"><span class="lineNum">     163 </span>            :                         fee: T::Balance,</a>
+<a name="164"><span class="lineNum">     164 </span>            :                 },</a>
+<a name="165"><span class="lineNum">     165 </span>            :                 /// Bonds were redeemed</a>
+<a name="166"><span class="lineNum">     166 </span>            :                 Redeemed {</a>
+<a name="167"><span class="lineNum">     167 </span>            :                         who: T::AccountId,</a>
+<a name="168"><span class="lineNum">     168 </span>            :                         bond_id: AssetId,</a>
+<a name="169"><span class="lineNum">     169 </span>            :                         amount: T::Balance,</a>
+<a name="170"><span class="lineNum">     170 </span>            :                 },</a>
+<a name="171"><span class="lineNum">     171 </span>            :         }</a>
+<a name="172"><span class="lineNum">     172 </span>            : </a>
+<a name="173"><span class="lineNum">     173 </span>            :         #[pallet::error]</a>
+<a name="174"><span class="lineNum">     174 </span>            :         #[cfg_attr(test, derive(PartialEq, Eq))]</a>
+<a name="175"><span class="lineNum">     175 </span>            :         pub enum Error&lt;T&gt; {</a>
+<a name="176"><span class="lineNum">     176 </span>            :                 /// Bond not registered</a>
+<a name="177"><span class="lineNum">     177 </span>            :                 NotRegistered,</a>
+<a name="178"><span class="lineNum">     178 </span>            :                 /// Bond is not mature</a>
+<a name="179"><span class="lineNum">     179 </span>            :                 NotMature,</a>
+<a name="180"><span class="lineNum">     180 </span>            :                 /// Maturity not long enough</a>
+<a name="181"><span class="lineNum">     181 </span>            :                 InvalidMaturity,</a>
+<a name="182"><span class="lineNum">     182 </span>            :                 /// Asset type not allowed for underlying asset</a>
+<a name="183"><span class="lineNum">     183 </span>            :                 DisallowedAsset,</a>
+<a name="184"><span class="lineNum">     184 </span>            :                 /// Asset is not registered in `AssetRegistry`</a>
+<a name="185"><span class="lineNum">     185 </span>            :                 AssetNotFound,</a>
+<a name="186"><span class="lineNum">     186 </span>            :                 /// Generated name is not valid.</a>
+<a name="187"><span class="lineNum">     187 </span>            :                 InvalidBondName,</a>
+<a name="188"><span class="lineNum">     188 </span>            :                 /// Bond's name parsing was now successful</a>
+<a name="189"><span class="lineNum">     189 </span>            :                 FailToParseName,</a>
+<a name="190"><span class="lineNum">     190 </span>            :         }</a>
+<a name="191"><span class="lineNum">     191 </span>            : </a>
+<a name="192"><span class="lineNum">     192 </span>            :         #[pallet::call]</a>
+<a name="193"><span class="lineNum">     193 </span>            :         impl&lt;T: Config&gt; Pallet&lt;T&gt; {</a>
+<a name="194"><span class="lineNum">     194 </span>            :                 /// Issue new fungible bonds.</a>
+<a name="195"><span class="lineNum">     195 </span>            :                 /// New asset id is registered and assigned to the bonds.</a>
+<a name="196"><span class="lineNum">     196 </span>            :                 /// The number of bonds the issuer receives is 1:1 to the `amount` of the underlying asset</a>
+<a name="197"><span class="lineNum">     197 </span>            :                 /// minus the protocol fee.</a>
+<a name="198"><span class="lineNum">     198 </span>            :                 /// The bond asset is registered with the empty string for the asset name,</a>
+<a name="199"><span class="lineNum">     199 </span>            :                 /// and with the same existential deposit as of the underlying asset.</a>
+<a name="200"><span class="lineNum">     200 </span>            :                 /// Bonds can be redeemed for the underlying asset once mature.</a>
+<a name="201"><span class="lineNum">     201 </span>            :                 /// Protocol fee is applied to the amount, and transferred to `T::FeeReceiver`.</a>
+<a name="202"><span class="lineNum">     202 </span>            :                 /// When issuing new bonds with the underlying asset and maturity that matches existing bonds,</a>
+<a name="203"><span class="lineNum">     203 </span>            :                 /// new amount of these existing bonds is issued, instead of registering new bonds.</a>
+<a name="204"><span class="lineNum">     204 </span>            :                 /// It's possible to issue new bonds for bonds that are already mature.</a>
+<a name="205"><span class="lineNum">     205 </span>            :                 ///</a>
+<a name="206"><span class="lineNum">     206 </span>            :                 /// Parameters:</a>
+<a name="207"><span class="lineNum">     207 </span>            :                 /// - `origin`: issuer of new bonds, needs to be `T::IssueOrigin`</a>
+<a name="208"><span class="lineNum">     208 </span>            :                 /// - `asset_id`: underlying asset id</a>
+<a name="209"><span class="lineNum">     209 </span>            :                 /// - `amount`: the amount of the underlying asset</a>
+<a name="210"><span class="lineNum">     210 </span>            :                 /// - `maturity`: Unix time in milliseconds, when the bonds will be mature.</a>
+<a name="211"><span class="lineNum">     211 </span>            :                 ///</a>
+<a name="212"><span class="lineNum">     212 </span>            :                 /// Emits `BondTokenCreated` event when successful and new bonds were registered.</a>
+<a name="213"><span class="lineNum">     213 </span>            :                 /// Emits `BondsIssued` event when successful.</a>
+<a name="214"><span class="lineNum">     214 </span>            :                 ///</a>
+<a name="215"><span class="lineNum">     215 </span>            :                 #[pallet::call_index(0)]</a>
+<a name="216"><span class="lineNum">     216 </span>            :                 #[pallet::weight(&lt;T as Config&gt;::WeightInfo::issue())]</a>
+<a name="217"><span class="lineNum">     217 </span><span class="lineNoCov">          0 :                 pub fn issue(origin: OriginFor&lt;T&gt;, asset_id: AssetId, amount: T::Balance, maturity: Moment) -&gt; DispatchResult {</span></a>
+<a name="218"><span class="lineNum">     218 </span><span class="lineCov">         11 :                         let who = T::IssueOrigin::ensure_origin(origin)?;</span></a>
+<a name="219"><span class="lineNum">     219 </span>            : </a>
+<a name="220"><span class="lineNum">     220 </span><span class="lineCov">         21 :                         ensure!(</span></a>
+<a name="221"><span class="lineNum">     221 </span><span class="lineCov">          2 :                                 T::AssetTypeWhitelist::contains(</span></a>
+<a name="222"><span class="lineNum">     222 </span><span class="lineCov">         23 :                                         &amp;T::AssetRegistry::asset_type(asset_id).ok_or(Error::&lt;T&gt;::AssetNotFound)?</span></a>
+<a name="223"><span class="lineNum">     223 </span>            :                                 ),</a>
+<a name="224"><span class="lineNum">     224 </span><span class="lineCov">          2 :                                 Error::&lt;T&gt;::DisallowedAsset</span></a>
+<a name="225"><span class="lineNum">     225 </span>            :                         );</a>
+<a name="226"><span class="lineNum">     226 </span>            : </a>
+<a name="227"><span class="lineNum">     227 </span><span class="lineCov">         38 :                         let fee = T::ProtocolFee::get().mul_ceil(amount);</span></a>
+<a name="228"><span class="lineNum">     228 </span><span class="lineCov">         19 :                         let amount_without_fee = amount.saturating_sub(fee);</span></a>
+<a name="229"><span class="lineNum">     229 </span><span class="lineCov">         19 :                         let pallet_account = Self::pallet_account_id();</span></a>
+<a name="230"><span class="lineNum">     230 </span>            : </a>
+<a name="231"><span class="lineNum">     231 </span><span class="lineCov">         38 :                         let bond_id = match BondIds::&lt;T&gt;::get((asset_id, maturity)) {</span></a>
+<a name="232"><span class="lineNum">     232 </span><span class="lineCov">          2 :                                 Some(bond_id) =&gt; bond_id,</span></a>
+<a name="233"><span class="lineNum">     233 </span><span class="lineNoCov">          0 :                                 None =&gt; {</span></a>
+<a name="234"><span class="lineNum">     234 </span>            :                                         // register new bonds</a>
+<a name="235"><span class="lineNum">     235 </span><span class="lineCov">         39 :                                         ensure!(maturity &gt;= T::TimestampProvider::now(), Error::&lt;T&gt;::InvalidMaturity);</span></a>
+<a name="236"><span class="lineNum">     236 </span>            : </a>
+<a name="237"><span class="lineNum">     237 </span><span class="lineCov">         36 :                                         let ed = T::ExistentialDeposits::get(&amp;asset_id);</span></a>
+<a name="238"><span class="lineNum">     238 </span><span class="lineCov">         17 :                                         let b_name = Self::bond_name(asset_id, maturity);</span></a>
+<a name="239"><span class="lineNum">     239 </span>            :                                         let bond_id = T::AssetRegistry::register_insufficient_asset(</a>
+<a name="240"><span class="lineNum">     240 </span><span class="lineCov">         18 :                                                 None,</span></a>
+<a name="241"><span class="lineNum">     241 </span><span class="lineCov">         18 :                                                 Some(b_name.try_into().map_err(|_| Error::&lt;T&gt;::InvalidBondName)?),</span></a>
+<a name="242"><span class="lineNum">     242 </span><span class="lineCov">         18 :                                                 AssetKind::Bond,</span></a>
+<a name="243"><span class="lineNum">     243 </span><span class="lineCov">         18 :                                                 Some(ed),</span></a>
+<a name="244"><span class="lineNum">     244 </span><span class="lineCov">         18 :                                                 None,</span></a>
+<a name="245"><span class="lineNum">     245 </span><span class="lineCov">         18 :                                                 None,</span></a>
+<a name="246"><span class="lineNum">     246 </span><span class="lineCov">         18 :                                                 None,</span></a>
+<a name="247"><span class="lineNum">     247 </span><span class="lineCov">         18 :                                                 None,</span></a>
+<a name="248"><span class="lineNum">     248 </span>            :                                         )?;</a>
+<a name="249"><span class="lineNum">     249 </span>            : </a>
+<a name="250"><span class="lineNum">     250 </span><span class="lineCov">         18 :                                         Bonds::&lt;T&gt;::insert(bond_id, (asset_id, maturity));</span></a>
+<a name="251"><span class="lineNum">     251 </span><span class="lineCov">         18 :                                         BondIds::&lt;T&gt;::insert((asset_id, maturity), bond_id);</span></a>
+<a name="252"><span class="lineNum">     252 </span>            : </a>
+<a name="253"><span class="lineNum">     253 </span><span class="lineCov">         18 :                                         Self::deposit_event(Event::TokenCreated {</span></a>
+<a name="254"><span class="lineNum">     254 </span><span class="lineCov">          1 :                                                 issuer: who.clone(),</span></a>
+<a name="255"><span class="lineNum">     255 </span><span class="lineCov">         36 :                                                 asset_id,</span></a>
+<a name="256"><span class="lineNum">     256 </span><span class="lineNoCov">          0 :                                                 bond_id,</span></a>
+<a name="257"><span class="lineNum">     257 </span><span class="lineCov">         36 :                                                 maturity,</span></a>
+<a name="258"><span class="lineNum">     258 </span>            :                                         });</a>
+<a name="259"><span class="lineNum">     259 </span>            : </a>
+<a name="260"><span class="lineNum">     260 </span><span class="lineCov">         19 :                                         bond_id</span></a>
+<a name="261"><span class="lineNum">     261 </span>            :                                 }</a>
+<a name="262"><span class="lineNum">     262 </span>            :                         };</a>
+<a name="263"><span class="lineNum">     263 </span>            : </a>
+<a name="264"><span class="lineNum">     264 </span><span class="lineCov">         38 :                         T::Currency::transfer(asset_id, &amp;who, &amp;pallet_account, amount_without_fee)?;</span></a>
+<a name="265"><span class="lineNum">     265 </span><span class="lineCov">         34 :                         T::Currency::transfer(asset_id, &amp;who, &amp;T::FeeReceiver::get(), fee)?;</span></a>
+<a name="266"><span class="lineNum">     266 </span><span class="lineCov">         17 :                         T::Currency::deposit(bond_id, &amp;who, amount_without_fee)?;</span></a>
+<a name="267"><span class="lineNum">     267 </span>            : </a>
+<a name="268"><span class="lineNum">     268 </span><span class="lineCov">         17 :                         Self::deposit_event(Event::Issued {</span></a>
+<a name="269"><span class="lineNum">     269 </span><span class="lineCov">         17 :                                 issuer: who,</span></a>
+<a name="270"><span class="lineNum">     270 </span><span class="lineCov">         17 :                                 bond_id,</span></a>
+<a name="271"><span class="lineNum">     271 </span><span class="lineNoCov">          0 :                                 amount: amount_without_fee,</span></a>
+<a name="272"><span class="lineNum">     272 </span><span class="lineNoCov">          0 :                                 fee,</span></a>
+<a name="273"><span class="lineNum">     273 </span>            :                         });</a>
+<a name="274"><span class="lineNum">     274 </span>            : </a>
+<a name="275"><span class="lineNum">     275 </span><span class="lineCov">         17 :                         Ok(())</span></a>
+<a name="276"><span class="lineNum">     276 </span>            :                 }</a>
+<a name="277"><span class="lineNum">     277 </span>            : </a>
+<a name="278"><span class="lineNum">     278 </span>            :                 /// Redeem bonds for the underlying asset.</a>
+<a name="279"><span class="lineNum">     279 </span>            :                 /// The amount of the underlying asset the `origin` receives is 1:1 to the `amount` of the bonds.</a>
+<a name="280"><span class="lineNum">     280 </span>            :                 /// Anyone who holds the bonds is able to redeem them.</a>
+<a name="281"><span class="lineNum">     281 </span>            :                 /// Bonds can be both partially or fully redeemed.</a>
+<a name="282"><span class="lineNum">     282 </span>            :                 ///</a>
+<a name="283"><span class="lineNum">     283 </span>            :                 /// Parameters:</a>
+<a name="284"><span class="lineNum">     284 </span>            :                 /// - `origin`: account id</a>
+<a name="285"><span class="lineNum">     285 </span>            :                 /// - `asset_id`: bond asset id</a>
+<a name="286"><span class="lineNum">     286 </span>            :                 /// - `amount`: the amount of the bonds to redeem for the underlying asset</a>
+<a name="287"><span class="lineNum">     287 </span>            :                 ///</a>
+<a name="288"><span class="lineNum">     288 </span>            :                 /// Emits `BondsRedeemed` event when successful.</a>
+<a name="289"><span class="lineNum">     289 </span>            :                 ///</a>
+<a name="290"><span class="lineNum">     290 </span>            :                 #[pallet::call_index(1)]</a>
+<a name="291"><span class="lineNum">     291 </span>            :                 #[pallet::weight(&lt;T as Config&gt;::WeightInfo::redeem())]</a>
+<a name="292"><span class="lineNum">     292 </span><span class="lineNoCov">          0 :                 pub fn redeem(origin: OriginFor&lt;T&gt;, bond_id: AssetId, amount: T::Balance) -&gt; DispatchResult {</span></a>
+<a name="293"><span class="lineNum">     293 </span><span class="lineCov">          1 :                         let who = ensure_signed(origin)?;</span></a>
+<a name="294"><span class="lineNum">     294 </span>            : </a>
+<a name="295"><span class="lineNum">     295 </span><span class="lineCov">          3 :                         let (underlying_asset_id, maturity) = Self::bond(bond_id).ok_or(Error::&lt;T&gt;::NotRegistered)?;</span></a>
+<a name="296"><span class="lineNum">     296 </span>            : </a>
+<a name="297"><span class="lineNum">     297 </span><span class="lineCov">         20 :                         let now = T::TimestampProvider::now();</span></a>
+<a name="298"><span class="lineNum">     298 </span><span class="lineCov">         11 :                         ensure!(now &gt;= maturity, Error::&lt;T&gt;::NotMature);</span></a>
+<a name="299"><span class="lineNum">     299 </span>            : </a>
+<a name="300"><span class="lineNum">     300 </span><span class="lineCov">         19 :                         T::Currency::withdraw(bond_id, &amp;who, amount)?;</span></a>
+<a name="301"><span class="lineNum">     301 </span>            : </a>
+<a name="302"><span class="lineNum">     302 </span><span class="lineCov">         11 :                         let pallet_account = Self::pallet_account_id();</span></a>
+<a name="303"><span class="lineNum">     303 </span><span class="lineCov">         12 :                         T::Currency::transfer(underlying_asset_id, &amp;pallet_account, &amp;who, amount)?;</span></a>
+<a name="304"><span class="lineNum">     304 </span>            : </a>
+<a name="305"><span class="lineNum">     305 </span><span class="lineCov">          7 :                         Self::deposit_event(Event::Redeemed { who, bond_id, amount });</span></a>
+<a name="306"><span class="lineNum">     306 </span>            : </a>
+<a name="307"><span class="lineNum">     307 </span><span class="lineCov">          7 :                         Ok(())</span></a>
+<a name="308"><span class="lineNum">     308 </span>            :                 }</a>
+<a name="309"><span class="lineNum">     309 </span>            :         }</a>
+<a name="310"><span class="lineNum">     310 </span>            : }</a>
+<a name="311"><span class="lineNum">     311 </span>            : </a>
+<a name="312"><span class="lineNum">     312 </span>            : impl&lt;T: Config&gt; Pallet&lt;T&gt; {</a>
+<a name="313"><span class="lineNum">     313 </span>            :         /// The account ID of the bonds pallet.</a>
+<a name="314"><span class="lineNum">     314 </span>            :         ///</a>
+<a name="315"><span class="lineNum">     315 </span>            :         /// This actually does computation. If you need to keep using it, then make sure you cache the</a>
+<a name="316"><span class="lineNum">     316 </span>            :         /// value and only call this once.</a>
+<a name="317"><span class="lineNum">     317 </span><span class="lineCov">         19 :         pub fn pallet_account_id() -&gt; T::AccountId {</span></a>
+<a name="318"><span class="lineNum">     318 </span><span class="lineCov">         17 :                 T::PalletId::get().into_account_truncating()</span></a>
+<a name="319"><span class="lineNum">     319 </span>            :         }</a>
+<a name="320"><span class="lineNum">     320 </span>            : </a>
+<a name="321"><span class="lineNum">     321 </span>            :         /// Return bond token name</a>
+<a name="322"><span class="lineNum">     322 </span><span class="lineCov">          2 :         pub fn bond_name(asset_id: AssetId, when: Moment) -&gt; Vec&lt;u8&gt; {</span></a>
+<a name="323"><span class="lineNum">     323 </span><span class="lineCov">          2 :                 let mut buf: Vec&lt;u8&gt; = Vec::new();</span></a>
+<a name="324"><span class="lineNum">     324 </span>            : </a>
+<a name="325"><span class="lineNum">     325 </span><span class="lineCov">          4 :                 buf.extend_from_slice(&amp;asset_id.to_le_bytes());</span></a>
+<a name="326"><span class="lineNum">     326 </span><span class="lineCov">          2 :                 buf.extend_from_slice(b&quot;.&quot;);</span></a>
+<a name="327"><span class="lineNum">     327 </span><span class="lineCov">          2 :                 buf.extend_from_slice(&amp;when.to_le_bytes());</span></a>
+<a name="328"><span class="lineNum">     328 </span>            : </a>
+<a name="329"><span class="lineNum">     329 </span><span class="lineCov">          2 :                 buf</span></a>
+<a name="330"><span class="lineNum">     330 </span>            :         }</a>
+<a name="331"><span class="lineNum">     331 </span>            : </a>
+<a name="332"><span class="lineNum">     332 </span><span class="lineCov">          2 :         pub fn parse_bond_name(name: Vec&lt;u8&gt;) -&gt; Result&lt;AssetId, Error&lt;T&gt;&gt; {</span></a>
+<a name="333"><span class="lineNum">     333 </span><span class="lineCov">          4 :                 Ok(AssetId::from_le_bytes(</span></a>
+<a name="334"><span class="lineNum">     334 </span><span class="lineCov">          2 :                         name[..mem::size_of::&lt;AssetId&gt;()]</span></a>
+<a name="335"><span class="lineNum">     335 </span><span class="lineNoCov">          0 :                                 .try_into()</span></a>
+<a name="336"><span class="lineNum">     336 </span><span class="lineNoCov">          0 :                                 .map_err(|_| Error::&lt;T&gt;::FailToParseName)?,</span></a>
+<a name="337"><span class="lineNum">     337 </span>            :                 ))</a>
+<a name="338"><span class="lineNum">     338 </span>            :         }</a>
+<a name="339"><span class="lineNum">     339 </span>            : }</a>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 1.16</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

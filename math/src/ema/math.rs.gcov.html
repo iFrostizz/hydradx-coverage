@@ -1,0 +1,366 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - math/src/ema/math.rs</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">math/src/ema</a> - math.rs<span style="font-size: 80%;"> (source / <a href="math.rs.func-sort-c.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">103</td>
+            <td class="headerCovTableEntry">108</td>
+            <td class="headerCovTableEntryHi">95.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2024-02-25 00:16:50</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : use crate::fraction;</a>
+<a name="2"><span class="lineNum">       2 </span>            : use crate::support::rational::Rounding;</a>
+<a name="3"><span class="lineNum">       3 </span>            : use crate::to_u128_wrapper;</a>
+<a name="4"><span class="lineNum">       4 </span>            : use crate::transcendental::saturating_powi_high_precision;</a>
+<a name="5"><span class="lineNum">       5 </span>            : use crate::types::{Balance, Fraction, Ratio};</a>
+<a name="6"><span class="lineNum">       6 </span>            : </a>
+<a name="7"><span class="lineNum">       7 </span>            : use num_traits::{One, Zero};</a>
+<a name="8"><span class="lineNum">       8 </span>            : use primitive_types::{U128, U256, U512};</a>
+<a name="9"><span class="lineNum">       9 </span>            : </a>
+<a name="10"><span class="lineNum">      10 </span>            : /// EmaPrice is a rational number represented by a `u128` for both numerator and denominator.</a>
+<a name="11"><span class="lineNum">      11 </span>            : pub type EmaPrice = Ratio;</a>
+<a name="12"><span class="lineNum">      12 </span>            : pub type EmaVolume = (Balance, Balance, Balance, Balance);</a>
+<a name="13"><span class="lineNum">      13 </span>            : pub type EmaLiquidity = (Balance, Balance);</a>
+<a name="14"><span class="lineNum">      14 </span>            : </a>
+<a name="15"><span class="lineNum">      15 </span>            : /// Calculate the new oracle values by integrating `incoming` values with the `previous` oracle.</a>
+<a name="16"><span class="lineNum">      16 </span>            : /// Uses a weighted average based on the `smoothing` factor.</a>
+<a name="17"><span class="lineNum">      17 </span><span class="lineCov">          4 : pub fn calculate_new_by_integrating_incoming(</span></a>
+<a name="18"><span class="lineNum">      18 </span>            :         previous: (EmaPrice, EmaVolume, EmaLiquidity),</a>
+<a name="19"><span class="lineNum">      19 </span>            :         incoming: (EmaPrice, EmaVolume, EmaLiquidity),</a>
+<a name="20"><span class="lineNum">      20 </span>            :         smoothing: Fraction,</a>
+<a name="21"><span class="lineNum">      21 </span>            : ) -&gt; (EmaPrice, EmaVolume, EmaLiquidity) {</a>
+<a name="22"><span class="lineNum">      22 </span><span class="lineCov">          4 :         let (prev_price, prev_volume, prev_liquidity) = previous;</span></a>
+<a name="23"><span class="lineNum">      23 </span><span class="lineCov">          4 :         let (incoming_price, incoming_volume, incoming_liquidity) = incoming;</span></a>
+<a name="24"><span class="lineNum">      24 </span><span class="lineCov">          4 :         let new_price = price_weighted_average(prev_price, incoming_price, smoothing);</span></a>
+<a name="25"><span class="lineNum">      25 </span><span class="lineCov">          3 :         let new_volume = volume_weighted_average(prev_volume, incoming_volume, smoothing);</span></a>
+<a name="26"><span class="lineNum">      26 </span><span class="lineCov">          3 :         let new_liquidity = liquidity_weighted_average(prev_liquidity, incoming_liquidity, smoothing);</span></a>
+<a name="27"><span class="lineNum">      27 </span><span class="lineCov">          4 :         (new_price, new_volume, new_liquidity)</span></a>
+<a name="28"><span class="lineNum">      28 </span>            : }</a>
+<a name="29"><span class="lineNum">      29 </span>            : </a>
+<a name="30"><span class="lineNum">      30 </span>            : /// Calculate the current oracle values from the `outdated` and `update_with` values using the `smoothing` factor with the old values being `iterations` out of date.</a>
+<a name="31"><span class="lineNum">      31 </span>            : ///</a>
+<a name="32"><span class="lineNum">      32 </span>            : /// Note: The volume is always updated with zero values so it is not a parameter.</a>
+<a name="33"><span class="lineNum">      33 </span><span class="lineCov">         10 : pub fn update_outdated_to_current(</span></a>
+<a name="34"><span class="lineNum">      34 </span>            :         iterations: u32,</a>
+<a name="35"><span class="lineNum">      35 </span>            :         outdated: (EmaPrice, EmaVolume, EmaLiquidity),</a>
+<a name="36"><span class="lineNum">      36 </span>            :         update_with: (EmaPrice, EmaLiquidity),</a>
+<a name="37"><span class="lineNum">      37 </span>            :         smoothing: Fraction,</a>
+<a name="38"><span class="lineNum">      38 </span>            : ) -&gt; (EmaPrice, EmaVolume, EmaLiquidity) {</a>
+<a name="39"><span class="lineNum">      39 </span><span class="lineCov">         10 :         let (prev_price, prev_volume, prev_liquidity) = outdated;</span></a>
+<a name="40"><span class="lineNum">      40 </span><span class="lineCov">         10 :         let (incoming_price, incoming_liquidity) = update_with;</span></a>
+<a name="41"><span class="lineNum">      41 </span><span class="lineCov">         10 :         let smoothing = exp_smoothing(smoothing, iterations);</span></a>
+<a name="42"><span class="lineNum">      42 </span><span class="lineCov">         11 :         let new_price = price_weighted_average(prev_price, incoming_price, smoothing);</span></a>
+<a name="43"><span class="lineNum">      43 </span><span class="lineCov">         11 :         let new_volume = volume_weighted_average(prev_volume, (0, 0, 0, 0), smoothing);</span></a>
+<a name="44"><span class="lineNum">      44 </span><span class="lineCov">         10 :         let new_liquidity = liquidity_weighted_average(prev_liquidity, incoming_liquidity, smoothing);</span></a>
+<a name="45"><span class="lineNum">      45 </span><span class="lineCov">         10 :         (new_price, new_volume, new_liquidity)</span></a>
+<a name="46"><span class="lineNum">      46 </span>            : }</a>
+<a name="47"><span class="lineNum">      47 </span>            : </a>
+<a name="48"><span class="lineNum">      48 </span>            : /// Calculate the iterated exponential moving average for the given prices.</a>
+<a name="49"><span class="lineNum">      49 </span>            : /// `iterations` is the number of iterations of the EMA to calculate.</a>
+<a name="50"><span class="lineNum">      50 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="51"><span class="lineNum">      51 </span>            : /// `smoothing` is the smoothing factor of the EMA.</a>
+<a name="52"><span class="lineNum">      52 </span><span class="lineCov">          2 : pub fn iterated_price_ema(iterations: u32, prev: EmaPrice, incoming: EmaPrice, smoothing: Fraction) -&gt; EmaPrice {</span></a>
+<a name="53"><span class="lineNum">      53 </span><span class="lineCov">          2 :         price_weighted_average(prev, incoming, exp_smoothing(smoothing, iterations))</span></a>
+<a name="54"><span class="lineNum">      54 </span>            : }</a>
+<a name="55"><span class="lineNum">      55 </span>            : </a>
+<a name="56"><span class="lineNum">      56 </span>            : /// Calculate the iterated exponential moving average for the given balances.</a>
+<a name="57"><span class="lineNum">      57 </span>            : /// `iterations` is the number of iterations of the EMA to calculate.</a>
+<a name="58"><span class="lineNum">      58 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="59"><span class="lineNum">      59 </span>            : /// `smoothing` is the smoothing factor of the EMA.</a>
+<a name="60"><span class="lineNum">      60 </span><span class="lineCov">          5 : pub fn iterated_balance_ema(iterations: u32, prev: Balance, incoming: Balance, smoothing: Fraction) -&gt; Balance {</span></a>
+<a name="61"><span class="lineNum">      61 </span><span class="lineCov">          2 :         balance_weighted_average(prev, incoming, exp_smoothing(smoothing, iterations))</span></a>
+<a name="62"><span class="lineNum">      62 </span>            : }</a>
+<a name="63"><span class="lineNum">      63 </span>            : </a>
+<a name="64"><span class="lineNum">      64 </span>            : /// Calculate the iterated exponential moving average for the givenEmaVolumes.</a>
+<a name="65"><span class="lineNum">      65 </span>            : /// `iterations` is the number of iterations of the EMA to calculate.</a>
+<a name="66"><span class="lineNum">      66 </span>            : /// `prev` is the previous oracle value; the incoming value is always zero.</a>
+<a name="67"><span class="lineNum">      67 </span>            : /// `smoothing` is the smoothing factor of the EMA.</a>
+<a name="68"><span class="lineNum">      68 </span><span class="lineCov">          2 : pub fn iterated_volume_ema(iterations: u32, prev: EmaVolume, smoothing: Fraction) -&gt; EmaVolume {</span></a>
+<a name="69"><span class="lineNum">      69 </span><span class="lineCov">          2 :         volume_weighted_average(prev, (0, 0, 0, 0), exp_smoothing(smoothing, iterations))</span></a>
+<a name="70"><span class="lineNum">      70 </span>            : }</a>
+<a name="71"><span class="lineNum">      71 </span>            : </a>
+<a name="72"><span class="lineNum">      72 </span>            : /// Calculate the iterated exponential moving average for the given balances.</a>
+<a name="73"><span class="lineNum">      73 </span>            : /// `iterations` is the number of iterations of the EMA to calculate.</a>
+<a name="74"><span class="lineNum">      74 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="75"><span class="lineNum">      75 </span>            : /// `smoothing` is the smoothing factor of the EMA.</a>
+<a name="76"><span class="lineNum">      76 </span><span class="lineCov">          1 : pub fn iterated_liquidity_ema(</span></a>
+<a name="77"><span class="lineNum">      77 </span>            :         iterations: u32,</a>
+<a name="78"><span class="lineNum">      78 </span>            :         prev: EmaLiquidity,</a>
+<a name="79"><span class="lineNum">      79 </span>            :         incoming: EmaLiquidity,</a>
+<a name="80"><span class="lineNum">      80 </span>            :         smoothing: Fraction,</a>
+<a name="81"><span class="lineNum">      81 </span>            : ) -&gt; EmaLiquidity {</a>
+<a name="82"><span class="lineNum">      82 </span><span class="lineCov">          1 :         liquidity_weighted_average(prev, incoming, exp_smoothing(smoothing, iterations))</span></a>
+<a name="83"><span class="lineNum">      83 </span>            : }</a>
+<a name="84"><span class="lineNum">      84 </span>            : </a>
+<a name="85"><span class="lineNum">      85 </span>            : /// Calculate the smoothing factor for a period from a given combination of original smoothing</a>
+<a name="86"><span class="lineNum">      86 </span>            : /// factor and iterations by exponentiating the complement by the iterations.</a>
+<a name="87"><span class="lineNum">      87 </span>            : ///</a>
+<a name="88"><span class="lineNum">      88 </span>            : /// Example:</a>
+<a name="89"><span class="lineNum">      89 </span>            : /// `exp_smoothing(0.6, 2) = 1 - (1 - 0.6)^2 = 1 - 0.40^2 = 1 - 0.16 = 0.84`</a>
+<a name="90"><span class="lineNum">      90 </span>            : ///</a>
+<a name="91"><span class="lineNum">      91 </span>            : /// ```ignore</a>
+<a name="92"><span class="lineNum">      92 </span>            : /// # use hydra_dx_math::ema::exp_smoothing;</a>
+<a name="93"><span class="lineNum">      93 </span>            : /// # use hydra_dy_math::types::Fraction;</a>
+<a name="94"><span class="lineNum">      94 </span>            : /// assert_eq!(exp_smoothing(Fraction::from_num(0.6), 2), FixedU128::from_num(0.84));</a>
+<a name="95"><span class="lineNum">      95 </span>            : /// ```</a>
+<a name="96"><span class="lineNum">      96 </span><span class="lineCov">         10 : pub fn exp_smoothing(smoothing: Fraction, iterations: u32) -&gt; Fraction {</span></a>
+<a name="97"><span class="lineNum">      97 </span><span class="lineCov">         17 :         debug_assert!(smoothing &lt;= Fraction::one());</span></a>
+<a name="98"><span class="lineNum">      98 </span><span class="lineCov">         10 :         let complement = Fraction::one() - smoothing;</span></a>
+<a name="99"><span class="lineNum">      99 </span>            :         // in order to determine the iterated smoothing factor we exponentiate the complement</a>
+<a name="100"><span class="lineNum">     100 </span><span class="lineCov">         10 :         let exp_complement: Fraction = saturating_powi_high_precision(complement, iterations);</span></a>
+<a name="101"><span class="lineNum">     101 </span><span class="lineCov">         29 :         debug_assert!(exp_complement &lt;= Fraction::one());</span></a>
+<a name="102"><span class="lineNum">     102 </span><span class="lineCov">         16 :         Fraction::one() - exp_complement</span></a>
+<a name="103"><span class="lineNum">     103 </span>            : }</a>
+<a name="104"><span class="lineNum">     104 </span>            : </a>
+<a name="105"><span class="lineNum">     105 </span>            : /// Calculates smoothing factor alpha for an exponential moving average based on `period`:</a>
+<a name="106"><span class="lineNum">     106 </span>            : /// `alpha = 2 / (period + 1)`. It leads to the &quot;center of mass&quot; of the EMA corresponding to be the</a>
+<a name="107"><span class="lineNum">     107 </span>            : /// &quot;center of mass&quot; of a `period`-length SMA.</a>
+<a name="108"><span class="lineNum">     108 </span>            : ///</a>
+<a name="109"><span class="lineNum">     109 </span>            : /// Possible alternatives for `alpha = 2 / (period + 1)`:</a>
+<a name="110"><span class="lineNum">     110 </span>            : /// + `alpha = 1 - 0.5^(1 / period)` for a half-life of `period` or</a>
+<a name="111"><span class="lineNum">     111 </span>            : /// + `alpha = 1 - 0.5^(2 / period)` to have the same median as a `period`-length SMA.</a>
+<a name="112"><span class="lineNum">     112 </span>            : /// See https://en.wikipedia.org/wiki/Moving_average#Relationship_between_SMA_and_EMA</a>
+<a name="113"><span class="lineNum">     113 </span>            : ///</a>
+<a name="114"><span class="lineNum">     114 </span>            : /// Note: Not used in the pallet except to check configured values. Not meant to be used by code</a>
+<a name="115"><span class="lineNum">     115 </span>            : /// interacting with the pallet. Use the configured values.</a>
+<a name="116"><span class="lineNum">     116 </span><span class="lineCov">          5 : pub fn smoothing_from_period(period: u64) -&gt; Fraction {</span></a>
+<a name="117"><span class="lineNum">     117 </span><span class="lineCov">         10 :         fraction::frac(2, u128::from(period.max(1)).saturating_add(1))</span></a>
+<a name="118"><span class="lineNum">     118 </span>            : }</a>
+<a name="119"><span class="lineNum">     119 </span>            : </a>
+<a name="120"><span class="lineNum">     120 </span>            : /// Calculate a weighted average for the given prices.</a>
+<a name="121"><span class="lineNum">     121 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="122"><span class="lineNum">     122 </span>            : /// `weight` is how much weight to give the new value.</a>
+<a name="123"><span class="lineNum">     123 </span>            : ///</a>
+<a name="124"><span class="lineNum">     124 </span>            : /// Note: Rounding is biased towards `prev`.</a>
+<a name="125"><span class="lineNum">     125 </span><span class="lineCov">         11 : pub fn price_weighted_average(prev: EmaPrice, incoming: EmaPrice, weight: Fraction) -&gt; EmaPrice {</span></a>
+<a name="126"><span class="lineNum">     126 </span><span class="lineCov">         22 :         debug_assert!(weight &lt;= Fraction::one(), &quot;weight must be &lt;= 1&quot;);</span></a>
+<a name="127"><span class="lineNum">     127 </span><span class="lineCov">         11 :         if incoming &gt;= prev {</span></a>
+<a name="128"><span class="lineNum">     128 </span><span class="lineCov">         11 :                 rounding_add(prev, multiply(weight, saturating_sub(incoming, prev)), Rounding::Down)</span></a>
+<a name="129"><span class="lineNum">     129 </span>            :         } else {</a>
+<a name="130"><span class="lineNum">     130 </span><span class="lineCov">          3 :                 rounding_sub(prev, multiply(weight, saturating_sub(prev, incoming)), Rounding::Up)</span></a>
+<a name="131"><span class="lineNum">     131 </span>            :         }</a>
+<a name="132"><span class="lineNum">     132 </span>            : }</a>
+<a name="133"><span class="lineNum">     133 </span>            : </a>
+<a name="134"><span class="lineNum">     134 </span>            : /// Calculate a weighted average for the given balances.</a>
+<a name="135"><span class="lineNum">     135 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="136"><span class="lineNum">     136 </span>            : /// `weight` is how much weight to give the new value.</a>
+<a name="137"><span class="lineNum">     137 </span>            : ///</a>
+<a name="138"><span class="lineNum">     138 </span>            : /// Note: Rounding is biased towards `prev`.</a>
+<a name="139"><span class="lineNum">     139 </span><span class="lineCov">         10 : pub fn balance_weighted_average(prev: Balance, incoming: Balance, weight: Fraction) -&gt; Balance {</span></a>
+<a name="140"><span class="lineNum">     140 </span><span class="lineCov">         20 :         debug_assert!(weight &lt;= Fraction::one(), &quot;weight must be &lt;= 1&quot;);</span></a>
+<a name="141"><span class="lineNum">     141 </span><span class="lineCov">         33 :         if incoming &gt;= prev {</span></a>
+<a name="142"><span class="lineNum">     142 </span>            :                 // Safe to use bare `+` because `weight &lt;= 1` and `a + (b - a) &lt;= b`.</a>
+<a name="143"><span class="lineNum">     143 </span>            :                 // Safe to use bare `-` because of the conditional.</a>
+<a name="144"><span class="lineNum">     144 </span><span class="lineCov">         10 :                 prev + fraction::multiply_by_balance(weight, incoming - prev)</span></a>
+<a name="145"><span class="lineNum">     145 </span>            :         } else {</a>
+<a name="146"><span class="lineNum">     146 </span>            :                 // Safe to use bare `-` because `weight &lt;= 1` and `a - (a - b) &gt;= 0` and the conditional.</a>
+<a name="147"><span class="lineNum">     147 </span><span class="lineCov">         22 :                 prev - fraction::multiply_by_balance(weight, prev - incoming)</span></a>
+<a name="148"><span class="lineNum">     148 </span>            :         }</a>
+<a name="149"><span class="lineNum">     149 </span>            : }</a>
+<a name="150"><span class="lineNum">     150 </span>            : </a>
+<a name="151"><span class="lineNum">     151 </span>            : /// Calculate a weighted average for the givenEmaVolumes.</a>
+<a name="152"><span class="lineNum">     152 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="153"><span class="lineNum">     153 </span>            : /// `weight` is how much weight to give the new value.</a>
+<a name="154"><span class="lineNum">     154 </span>            : ///</a>
+<a name="155"><span class="lineNum">     155 </span>            : /// Note: Just delegates to `balance_weighted_average` under the hood.</a>
+<a name="156"><span class="lineNum">     156 </span>            : /// Note: Rounding is biased towards `prev`.</a>
+<a name="157"><span class="lineNum">     157 </span><span class="lineCov">         10 : pub fn volume_weighted_average(prev: EmaVolume, incoming: EmaVolume, weight: Fraction) -&gt; EmaVolume {</span></a>
+<a name="158"><span class="lineNum">     158 </span><span class="lineCov">         20 :         debug_assert!(weight &lt;= Fraction::one(), &quot;weight must be &lt;= 1&quot;);</span></a>
+<a name="159"><span class="lineNum">     159 </span><span class="lineCov">         10 :         let (prev_a_in, prev_b_out, prev_a_out, prev_b_in) = prev;</span></a>
+<a name="160"><span class="lineNum">     160 </span><span class="lineCov">         10 :         let (a_in, b_out, a_out, b_in) = incoming;</span></a>
+<a name="161"><span class="lineNum">     161 </span>            :         (</a>
+<a name="162"><span class="lineNum">     162 </span><span class="lineCov">         10 :                 balance_weighted_average(prev_a_in, a_in, weight),</span></a>
+<a name="163"><span class="lineNum">     163 </span><span class="lineCov">         10 :                 balance_weighted_average(prev_b_out, b_out, weight),</span></a>
+<a name="164"><span class="lineNum">     164 </span><span class="lineCov">         10 :                 balance_weighted_average(prev_a_out, a_out, weight),</span></a>
+<a name="165"><span class="lineNum">     165 </span><span class="lineCov">         10 :                 balance_weighted_average(prev_b_in, b_in, weight),</span></a>
+<a name="166"><span class="lineNum">     166 </span>            :         )</a>
+<a name="167"><span class="lineNum">     167 </span>            : }</a>
+<a name="168"><span class="lineNum">     168 </span>            : </a>
+<a name="169"><span class="lineNum">     169 </span>            : /// Calculate a weighted average for the givenEmaLiquidity values.</a>
+<a name="170"><span class="lineNum">     170 </span>            : /// `prev` is the previous oracle value, `incoming` is the new value to integrate.</a>
+<a name="171"><span class="lineNum">     171 </span>            : /// `weight` is how much weight to give the new value.</a>
+<a name="172"><span class="lineNum">     172 </span>            : ///</a>
+<a name="173"><span class="lineNum">     173 </span>            : /// Note: Just delegates to `balance_weighted_average` under the hood.</a>
+<a name="174"><span class="lineNum">     174 </span>            : /// Note: Rounding is biased towards `prev`.</a>
+<a name="175"><span class="lineNum">     175 </span><span class="lineCov">         10 : pub fn liquidity_weighted_average(</span></a>
+<a name="176"><span class="lineNum">     176 </span>            :         prev: (Balance, Balance),</a>
+<a name="177"><span class="lineNum">     177 </span>            :         incoming: (Balance, Balance),</a>
+<a name="178"><span class="lineNum">     178 </span>            :         weight: Fraction,</a>
+<a name="179"><span class="lineNum">     179 </span>            : ) -&gt; (Balance, Balance) {</a>
+<a name="180"><span class="lineNum">     180 </span><span class="lineCov">         20 :         debug_assert!(weight &lt;= Fraction::one(), &quot;weight must be &lt;= 1&quot;);</span></a>
+<a name="181"><span class="lineNum">     181 </span><span class="lineCov">         10 :         let (prev_a, prev_b) = prev;</span></a>
+<a name="182"><span class="lineNum">     182 </span><span class="lineCov">         10 :         let (a, b) = incoming;</span></a>
+<a name="183"><span class="lineNum">     183 </span>            :         (</a>
+<a name="184"><span class="lineNum">     184 </span><span class="lineCov">         10 :                 balance_weighted_average(prev_a, a, weight),</span></a>
+<a name="185"><span class="lineNum">     185 </span><span class="lineCov">         10 :                 balance_weighted_average(prev_b, b, weight),</span></a>
+<a name="186"><span class="lineNum">     186 </span>            :         )</a>
+<a name="187"><span class="lineNum">     187 </span>            : }</a>
+<a name="188"><span class="lineNum">     188 </span>            : </a>
+<a name="189"><span class="lineNum">     189 </span>            : // Utility functions for working with rational numbers.</a>
+<a name="190"><span class="lineNum">     190 </span>            : </a>
+<a name="191"><span class="lineNum">     191 </span>            : /// Subtract `r` from `l` and return a tuple of `U256` for full precision.</a>
+<a name="192"><span class="lineNum">     192 </span>            : /// Saturates if `r &gt;= l`.</a>
+<a name="193"><span class="lineNum">     193 </span><span class="lineCov">         11 : pub(super) fn saturating_sub(l: EmaPrice, r: EmaPrice) -&gt; (U256, U256) {</span></a>
+<a name="194"><span class="lineNum">     194 </span><span class="lineCov">         12 :         if l.n.is_zero() || r.n.is_zero() {</span></a>
+<a name="195"><span class="lineNum">     195 </span><span class="lineCov">          1 :                 return (l.n.into(), l.d.into());</span></a>
+<a name="196"><span class="lineNum">     196 </span>            :         }</a>
+<a name="197"><span class="lineNum">     197 </span><span class="lineCov">         11 :         let (l_n, l_d, r_n, r_d) = to_u128_wrapper!(l.n, l.d, r.n, r.d);</span></a>
+<a name="198"><span class="lineNum">     198 </span>            :         // n = l.n * r.d - r.n * l.d</a>
+<a name="199"><span class="lineNum">     199 </span><span class="lineCov">         32 :         let n = l_n.full_mul(r_d).saturating_sub(r_n.full_mul(l_d));</span></a>
+<a name="200"><span class="lineNum">     200 </span>            :         // d = l.d * r.d</a>
+<a name="201"><span class="lineNum">     201 </span><span class="lineCov">         17 :         let d = l_d.full_mul(r_d);</span></a>
+<a name="202"><span class="lineNum">     202 </span><span class="lineCov">         15 :         (n, d)</span></a>
+<a name="203"><span class="lineNum">     203 </span>            : }</a>
+<a name="204"><span class="lineNum">     204 </span>            : </a>
+<a name="205"><span class="lineNum">     205 </span>            : /// Multiply a `Fraction` `f` with a rational number of `U256`s, returning a tuple of `U512`s for full</a>
+<a name="206"><span class="lineNum">     206 </span>            : /// precision.</a>
+<a name="207"><span class="lineNum">     207 </span><span class="lineCov">         27 : pub(super) fn multiply(f: Fraction, (r_n, r_d): (U256, U256)) -&gt; (U512, U512) {</span></a>
+<a name="208"><span class="lineNum">     208 </span><span class="lineCov">         26 :         debug_assert!(f &lt;= Fraction::ONE);</span></a>
+<a name="209"><span class="lineNum">     209 </span><span class="lineCov">         26 :         if f.is_zero() || r_n.is_zero() {</span></a>
+<a name="210"><span class="lineNum">     210 </span><span class="lineCov">         10 :                 return (U512::zero(), U512::one());</span></a>
+<a name="211"><span class="lineNum">     211 </span><span class="lineCov">          5 :         } else if f.is_one() {</span></a>
+<a name="212"><span class="lineNum">     212 </span><span class="lineCov">          3 :                 return (r_n.into(), r_d.into());</span></a>
+<a name="213"><span class="lineNum">     213 </span>            :         }</a>
+<a name="214"><span class="lineNum">     214 </span>            :         // n = l.n * f.to_bits</a>
+<a name="215"><span class="lineNum">     215 </span><span class="lineCov">          3 :         let n = r_n.full_mul(U256::from(f.to_bits()));</span></a>
+<a name="216"><span class="lineNum">     216 </span>            :         // d = l.d * DIV</a>
+<a name="217"><span class="lineNum">     217 </span><span class="lineCov">          6 :         let d = r_d.full_mul(U256::from(crate::fraction::DIV));</span></a>
+<a name="218"><span class="lineNum">     218 </span><span class="lineCov">          4 :         (n, d)</span></a>
+<a name="219"><span class="lineNum">     219 </span>            : }</a>
+<a name="220"><span class="lineNum">     220 </span>            : </a>
+<a name="221"><span class="lineNum">     221 </span>            : /// Reduce the precision of a 512 bit rational number to 383 bits.</a>
+<a name="222"><span class="lineNum">     222 </span>            : /// The rounding is done by shifting which implicitly rounds down both numerator and denominator.</a>
+<a name="223"><span class="lineNum">     223 </span>            : /// This can effectivly round the complete rational number up or down pseudo-randomly.</a>
+<a name="224"><span class="lineNum">     224 </span>            : /// Specify `rounding` other than `Nearest` to round the whole number up or down.</a>
+<a name="225"><span class="lineNum">     225 </span><span class="lineCov">         10 : pub(super) fn round((n, d): (U512, U512), rounding: Rounding) -&gt; (U512, U512) {</span></a>
+<a name="226"><span class="lineNum">     226 </span><span class="lineCov">         10 :         let shift = n.bits().max(d.bits()).saturating_sub(383); // anticipate the saturating_add</span></a>
+<a name="227"><span class="lineNum">     227 </span><span class="lineCov">         11 :         if shift &gt; 0 {</span></a>
+<a name="228"><span class="lineNum">     228 </span><span class="lineNoCov">          0 :                 let min_n = if n.is_zero() { U512::zero() } else { U512::one() };</span></a>
+<a name="229"><span class="lineNum">     229 </span><span class="lineNoCov">          0 :                 let (bias_n, bias_d) = rounding.to_bias(1);</span></a>
+<a name="230"><span class="lineNum">     230 </span>            :                 (</a>
+<a name="231"><span class="lineNum">     231 </span><span class="lineNoCov">          0 :                         (n &gt;&gt; shift).saturating_add(bias_n.into()).max(min_n),</span></a>
+<a name="232"><span class="lineNum">     232 </span><span class="lineNoCov">          0 :                         (d &gt;&gt; shift).saturating_add(bias_d.into()).max(U512::one()),</span></a>
+<a name="233"><span class="lineNum">     233 </span>            :                 )</a>
+<a name="234"><span class="lineNum">     234 </span>            :         } else {</a>
+<a name="235"><span class="lineNum">     235 </span><span class="lineCov">          7 :                 (n, d)</span></a>
+<a name="236"><span class="lineNum">     236 </span>            :         }</a>
+<a name="237"><span class="lineNum">     237 </span>            : }</a>
+<a name="238"><span class="lineNum">     238 </span>            : </a>
+<a name="239"><span class="lineNum">     239 </span>            : /// Round a 512 bit rational number to a 128 bit rational number.</a>
+<a name="240"><span class="lineNum">     240 </span>            : /// The rounding is done by shifting which implicitly rounds down both numerator and denominator.</a>
+<a name="241"><span class="lineNum">     241 </span>            : /// This can effectivly round the complete rational number up or down pseudo-randomly.</a>
+<a name="242"><span class="lineNum">     242 </span>            : /// Specify `rounding` other than `Nearest` to round the whole number up or down.</a>
+<a name="243"><span class="lineNum">     243 </span><span class="lineCov">         26 : pub(super) fn round_to_rational((n, d): (U512, U512), rounding: Rounding) -&gt; EmaPrice {</span></a>
+<a name="244"><span class="lineNum">     244 </span><span class="lineCov">         24 :         let shift = n.bits().max(d.bits()).saturating_sub(128);</span></a>
+<a name="245"><span class="lineNum">     245 </span><span class="lineCov">         19 :         let (n, d) = if shift &gt; 0 {</span></a>
+<a name="246"><span class="lineNum">     246 </span><span class="lineCov">         12 :                 let min_n = if n.is_zero() { 0 } else { 1 };</span></a>
+<a name="247"><span class="lineNum">     247 </span><span class="lineCov">          5 :                 let (bias_n, bias_d) = rounding.to_bias(1);</span></a>
+<a name="248"><span class="lineNum">     248 </span><span class="lineCov">          5 :                 let shifted_n = (n &gt;&gt; shift).low_u128();</span></a>
+<a name="249"><span class="lineNum">     249 </span><span class="lineCov">         12 :                 let shifted_d = (d &gt;&gt; shift).low_u128();</span></a>
+<a name="250"><span class="lineNum">     250 </span>            :                 (</a>
+<a name="251"><span class="lineNum">     251 </span><span class="lineCov">         12 :                         shifted_n.saturating_add(bias_n).max(min_n),</span></a>
+<a name="252"><span class="lineNum">     252 </span><span class="lineCov">         11 :                         shifted_d.saturating_add(bias_d).max(1),</span></a>
+<a name="253"><span class="lineNum">     253 </span>            :                 )</a>
+<a name="254"><span class="lineNum">     254 </span>            :         } else {</a>
+<a name="255"><span class="lineNum">     255 </span><span class="lineCov">          1 :                 (n.low_u128(), d.low_u128())</span></a>
+<a name="256"><span class="lineNum">     256 </span>            :         };</a>
+<a name="257"><span class="lineNum">     257 </span><span class="lineCov">         12 :         EmaPrice::new(n, d)</span></a>
+<a name="258"><span class="lineNum">     258 </span>            : }</a>
+<a name="259"><span class="lineNum">     259 </span>            : </a>
+<a name="260"><span class="lineNum">     260 </span>            : /// Add `l` and `r` and round the result to a 128 bit rational number.</a>
+<a name="261"><span class="lineNum">     261 </span>            : /// The precision of `r` is reduced to 383 bits so the multiplications don't saturate.</a>
+<a name="262"><span class="lineNum">     262 </span><span class="lineCov">         20 : pub(super) fn rounding_add(l: EmaPrice, (r_n, r_d): (U512, U512), rounding: Rounding) -&gt; EmaPrice {</span></a>
+<a name="263"><span class="lineNum">     263 </span><span class="lineCov">         10 :         if l.is_zero() {</span></a>
+<a name="264"><span class="lineNum">     264 </span><span class="lineCov">          1 :                 return round_to_rational((r_n, r_d), Rounding::Nearest);</span></a>
+<a name="265"><span class="lineNum">     265 </span><span class="lineCov">         10 :         } else if r_n.is_zero() {</span></a>
+<a name="266"><span class="lineNum">     266 </span><span class="lineCov">         10 :                 return l;</span></a>
+<a name="267"><span class="lineNum">     267 </span>            :         }</a>
+<a name="268"><span class="lineNum">     268 </span><span class="lineCov">          4 :         let (l_n, l_d) = (U512::from(l.n), U512::from(l.d));</span></a>
+<a name="269"><span class="lineNum">     269 </span><span class="lineCov">          5 :         let (r_n, r_d) = round((r_n, r_d), rounding);</span></a>
+<a name="270"><span class="lineNum">     270 </span>            :         // n = l.n * r.d + r.n * l.d</a>
+<a name="271"><span class="lineNum">     271 </span><span class="lineCov">          5 :         let n = l_n.saturating_mul(r_d).saturating_add(r_n.saturating_mul(l_d));</span></a>
+<a name="272"><span class="lineNum">     272 </span>            :         // d = l.d * r.d</a>
+<a name="273"><span class="lineNum">     273 </span><span class="lineCov">          7 :         let d = l_d.saturating_mul(r_d);</span></a>
+<a name="274"><span class="lineNum">     274 </span><span class="lineCov">          7 :         round_to_rational((n, d), rounding)</span></a>
+<a name="275"><span class="lineNum">     275 </span>            : }</a>
+<a name="276"><span class="lineNum">     276 </span>            : </a>
+<a name="277"><span class="lineNum">     277 </span>            : /// Subract `l` and `r` (saturating) and round the result to a 128 bit rational number.</a>
+<a name="278"><span class="lineNum">     278 </span>            : /// The precision of `r` is reduced to 383 bits so the multiplications don't saturate.</a>
+<a name="279"><span class="lineNum">     279 </span><span class="lineCov">          8 : pub(super) fn rounding_sub(l: EmaPrice, (r_n, r_d): (U512, U512), rounding: Rounding) -&gt; EmaPrice {</span></a>
+<a name="280"><span class="lineNum">     280 </span><span class="lineCov">          5 :         if l.is_zero() || r_n.is_zero() {</span></a>
+<a name="281"><span class="lineNum">     281 </span><span class="lineNoCov">          0 :                 return l;</span></a>
+<a name="282"><span class="lineNum">     282 </span>            :         }</a>
+<a name="283"><span class="lineNum">     283 </span><span class="lineCov">          3 :         let (l_n, l_d) = (U512::from(l.n), U512::from(l.d));</span></a>
+<a name="284"><span class="lineNum">     284 </span><span class="lineCov">          6 :         let (r_n, r_d) = round((r_n, r_d), rounding);</span></a>
+<a name="285"><span class="lineNum">     285 </span>            :         // n = l.n * r.d - r.n * l.d</a>
+<a name="286"><span class="lineNum">     286 </span><span class="lineCov">          4 :         let n = l_n.saturating_mul(r_d).saturating_sub(r_n.saturating_mul(l_d));</span></a>
+<a name="287"><span class="lineNum">     287 </span>            :         // d = l.d * r.d</a>
+<a name="288"><span class="lineNum">     288 </span><span class="lineCov">          8 :         let d = l_d.saturating_mul(r_d);</span></a>
+<a name="289"><span class="lineNum">     289 </span><span class="lineCov">          8 :         round_to_rational((n, d), rounding)</span></a>
+<a name="290"><span class="lineNum">     290 </span>            : }</a>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 1.16</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
